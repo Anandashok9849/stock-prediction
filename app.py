@@ -23,7 +23,7 @@ import requests
 app = Flask(__name__)
 
 # Load model + scaler
-model = load_model("model.h5")
+model = load_model("model.h5", compile=False)
 scaler = joblib.load("scaler.pkl")
 
 if not os.path.exists("static"):
