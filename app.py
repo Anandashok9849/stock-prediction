@@ -52,7 +52,7 @@ def index():
         # =========================
         news = []
         try:
-            API_KEY = "25b14e81477d4f0ab0fb3272b0e2817b"   # 🔥 PUT YOUR KEY HERE
+            API_KEY = "YOUR_API_KEY"   # 🔥 PUT YOUR KEY HERE
             url = f"https://newsapi.org/v2/everything?q={stock_name} stock&language=en&sortBy=publishedAt&apiKey={API_KEY}"
             response = requests.get(url)
             data = response.json()
