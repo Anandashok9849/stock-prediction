@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stock Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+    <style>
+        body {
+            background-color: #121212;
+            color: white;
+            font-family: Arial;
+            text-align: center;
+        }
+
+        input, button {
+            padding: 10px;
+            margin: 10px;
+            border-radius: 5px;
+            border: none;
+        }
+
+        button {
+            background: #00ffcc;
+            cursor: pointer;
+        }
+
+        .card {
+            background: #1e1e1e;
+            margin: 20px auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 85%;
+        }
+
+        a {
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>📈 Stock Prediction Dashboard</h1>
+
+<form method="POST">
+    <input required type="text" name="stock" placeholder="Enter Stock (AAPL)" style="text-transform:uppercase;">
+    <button type="submit">Predict</button>
+</form>
+
+<!-- 🔄 Loading indicator -->
+<div id="loading" style="display:none;">⏳ Loading...</div>
+
+{% if mse %}
+<div class="card">
+    <h2>📌 {{ stock_name }} ({{ stock }})</h2>
+    <h3>💰 Current Price: {{ latest_price }}</h3>
+    <h3>🔮 Next Day Prediction: {{ next_price }}</h3>
+    <p>MSE: {{ mse }}</p>
+    <p>RMSE: {{ rmse }}</p>
+</div>
+
+<div class="card">
+    <h2>📉 Prediction Chart</h2>
+    <img src="{{ plot_path }}?v={{ mse }}" width="100%">
+</div>
+
+<div class="card">
+    <h2>📊 Market Chart</h2>
+    <div id="chart" style="height:500px;"></div>
+</div>
+
+<div class="card">
+    <h2>📰 Latest News</h2>
+
+    {% if news %}
+        {% for item in news %}
+            <div style="margin-bottom:15px; text-align:left; border-bottom:1px solid #333; padding-bottom:10px;">
+                <a href="{{ item['link'] }}" target="_blank" style="color:#00ffcc; font-weight:bold;">
+                    {{ item['title'] }}
+                </a>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No news available</p>
+    {% endif %}
+</div>
+
+<script>
+    // Show loading when submitting form
+    document.querySelector("form").onsubmit = function() {
+        document.getElementById("loading").style.display = "block";
+    };
+
+    // Plotly chart
+    var graph = JSON.parse('{{ graph_json | safe }}');
+    Plotly.newPlot('chart', graph.data, graph.layout);
+</script>
+{% endif %}
+
+{% if error %}
+<p style="color:red;">{{ error }}</p>
+{% endif %}
+
+</body>
+</html>

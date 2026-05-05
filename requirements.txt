@@ -1,0 +1,12 @@
+numpy
+pandas
+matplotlib
+tensorflow
+flask
+yfinance
+scikit-learn
+plotly
+requests
+joblib
+gunicorn
+keras
