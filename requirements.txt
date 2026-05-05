@@ -9,4 +9,5 @@ plotly
 requests
 joblib
 gunicorn
+gunicorn
 keras

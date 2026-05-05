@@ -141,6 +141,26 @@ stock-prediction/
    git push heroku master
    ```
 
+### Render Deployment
+
+1. **Connect your GitHub repository to Render:**
+   - Go to [Render.com](https://render.com) and sign up/login
+   - Click "New +" and select "Web Service"
+   - Connect your GitHub account and select the `stock-prediction` repository
+
+2. **Configure the service:**
+   - **Name**: `stock-prediction` (or your preferred name)
+   - **Runtime**: `Python 3`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `gunicorn app:app`
+
+3. **Environment Variables:**
+   - Add your NewsAPI key: `NEWS_API_KEY=your_actual_api_key_here`
+
+4. **Deploy:**
+   - Click "Create Web Service"
+   - Render will automatically build and deploy your app
+
 ### Local Deployment
 
 The app includes a `Procfile` for easy deployment to platforms like Heroku, Render, or Railway.
