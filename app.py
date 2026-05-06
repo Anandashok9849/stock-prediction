@@ -1,3 +1,4 @@
+
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -6,7 +7,7 @@ import matplotlib.pyplot as plt
 
 from flask import Flask, render_template, request
 import yfinance as yf
-from keras.models import load_model
+from tensorflow.keras.models import load_model
 from sklearn.metrics import mean_squared_error
 import joblib
 import datetime as dt
@@ -17,15 +18,18 @@ import plotly.graph_objects as go
 import plotly.utils
 import json
 
-# ✅ News API
+# News API
 import requests
 
 app = Flask(__name__)
 
+# =========================
 # Load model + scaler
-model = load_model("model.h5", compile=False)
+# =========================
+model = load_model("model.keras", compile=False)
 scaler = joblib.load("scaler.pkl")
 
+# Create static folder if not exists
 if not os.path.exists("static"):
     os.makedirs("static")
 
@@ -33,108 +37,199 @@ if not os.path.exists("static"):
 @app.route('/', methods=['GET', 'POST'])
 def index():
     try:
-        stock = request.form.get('stock', 'AAPL')
+        # =========================
+        # Get stock symbol
+        # =========================
+        stock = request.form.get('stock', 'AAPL').upper()
 
         # =========================
-        # 📌 Stock Name
+        # Stock info
         # =========================
         ticker = yf.Ticker(stock)
 
         stock_name = stock
+
         try:
             info = ticker.info
-            stock_name = info.get('longName') or info.get('shortName') or stock
+            stock_name = (
+                info.get('longName')
+                or info.get('shortName')
+                or stock
+            )
         except:
             pass
 
         # =========================
-        # 📰 NewsAPI Integration
+        # News API Integration
         # =========================
         news = []
-        try:
-            API_KEY = "25b14e81477d4f0ab0fb3272b0e2817b"   # 🔥 PUT YOUR KEY HERE
-            url = f"https://newsapi.org/v2/everything?q={stock_name} stock&language=en&sortBy=publishedAt&apiKey={API_KEY}"
-            response = requests.get(url)
-            data = response.json()
 
-            if data.get("articles"):
-                for article in data["articles"][:5]:
-                    news.append({
-                        "title": article["title"],
-                        "link": article["url"]
-                    })
+        try:
+            API_KEY = os.environ.get("NEWS_API_KEY", "")
+
+            if API_KEY:
+
+                url = (
+                    f"https://newsapi.org/v2/everything?"
+                    f"q={stock_name} stock&"
+                    f"language=en&"
+                    f"sortBy=publishedAt&"
+                    f"apiKey={API_KEY}"
+                )
+
+                response = requests.get(url)
+                data = response.json()
+
+                if data.get("articles"):
+
+                    for article in data["articles"][:5]:
+
+                        news.append({
+                            "title": article.get("title", "No Title"),
+                            "link": article.get("url", "#")
+                        })
 
         except:
             news = []
 
         # =========================
-        # 📥 Fetch Data
+        # Download stock data
         # =========================
-        df = yf.download(stock, start="2018-01-01", end=dt.datetime.now())
+        df = yf.download(
+            stock,
+            start="2018-01-01",
+            end=dt.datetime.now()
+        )
 
         if df.empty:
-            return render_template("index.html", error="Invalid stock symbol")
+            return render_template(
+                "index.html",
+                error="Invalid stock symbol"
+            )
 
+        # =========================
+        # Close price
+        # =========================
         close_data = df[['Close']]
 
         # =========================
-        # 🔄 Scaling
+        # Scale data
         # =========================
         scaled_data = scaler.transform(close_data)
 
-        x_test, y_test = [], []
+        # =========================
+        # Create test data
+        # =========================
+        x_test = []
+        y_test = []
 
         for i in range(100, len(scaled_data)):
             x_test.append(scaled_data[i-100:i])
             y_test.append(scaled_data[i])
 
-        x_test, y_test = np.array(x_test), np.array(y_test)
+        x_test = np.array(x_test)
+        y_test = np.array(y_test)
 
         # =========================
-        # 🔮 Prediction
+        # Predict
         # =========================
-        y_pred = model.predict(x_test)
+        y_pred = model.predict(x_test, verbose=0)
 
+        # Inverse transform
         y_pred = scaler.inverse_transform(y_pred)
-        y_test = scaler.inverse_transform(y_test.reshape(-1,1))
+        y_test = scaler.inverse_transform(
+            y_test.reshape(-1, 1)
+        )
 
+        # =========================
+        # Metrics
+        # =========================
         mse = mean_squared_error(y_test, y_pred)
         rmse = np.sqrt(mse)
 
         # =========================
-        # 📉 Prediction Chart
+        # Prediction chart
         # =========================
-        plt.figure(figsize=(10,5))
-        plt.plot(y_test, label='Actual', color='blue')
-        plt.plot(y_pred, label='Predicted', color='orange')
+        plt.figure(figsize=(10, 5))
+
+        plt.plot(
+            y_test,
+            label='Actual',
+            color='blue'
+        )
+
+        plt.plot(
+            y_pred,
+            label='Predicted',
+            color='orange'
+        )
+
         plt.title(f"{stock} Prediction vs Actual")
+        plt.xlabel("Time")
+        plt.ylabel("Price")
+
         plt.legend()
         plt.grid()
 
         plot_path = "static/result.png"
+
         plt.savefig(plot_path)
         plt.close()
 
         # =========================
-        # 📈 Market Chart
+        # Plotly market chart
         # =========================
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=df.index, y=df['Close'], name='Market Price'))
-        fig.update_layout(title=f"{stock} Market Chart", template="plotly_dark")
 
-        graph_json = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+        fig.add_trace(
+            go.Scatter(
+                x=df.index,
+                y=df['Close'].values.flatten(),
+                mode='lines',
+                name='Market Price'
+            )
+        )
+
+        fig.update_layout(
+            title=f"{stock} Market Chart",
+            template="plotly_dark",
+            height=500
+        )
+
+        graph_json = json.dumps(
+            fig,
+            cls=plotly.utils.PlotlyJSONEncoder
+        )
 
         # =========================
-        # 🔮 Next Day Prediction
+        # Next day prediction
         # =========================
         last_100 = scaled_data[-100:]
-        last_100 = np.reshape(last_100, (1, 100, 1))
 
-        next_pred = model.predict(last_100)
-        next_price = scaler.inverse_transform(next_pred)[0][0]
+        last_100 = np.reshape(
+            last_100,
+            (1, 100, 1)
+        )
 
-        latest_price = df['Close'].iloc[-1].item()
+        next_pred = model.predict(
+            last_100,
+            verbose=0
+        )
 
+        next_price = scaler.inverse_transform(
+            next_pred
+        )[0][0]
+
+        # =========================
+        # Latest stock price
+        # =========================
+        latest_price = float(
+            df['Close'].iloc[-1].item()
+        )
+
+        # =========================
+        # Render template
+        # =========================
         return render_template(
             "index.html",
             stock=stock,
@@ -149,12 +244,15 @@ def index():
         )
 
     except Exception as e:
-        return render_template("index.html", error=str(e))
+
+        return render_template(
+            "index.html",
+            error=str(e)
+        )
 
 
+# =========================
+# Run Flask app
+# =========================
 if __name__ == "__main__":
-    # For local development
-    app.run(debug=True)
-else:
-    # For production deployment
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    app.run(host="0.0.0.0", port=10000)

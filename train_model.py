@@ -42,7 +42,7 @@ model.compile(optimizer='adam', loss='mean_squared_error')
 model.fit(x_train, y_train, epochs=10, batch_size=32)
 
 # Save model + scaler
-model.save("model.h5")
+model.save("model.keras")
 joblib.dump(scaler, "scaler.pkl")
 
 print("Model and scaler saved successfully!")

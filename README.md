@@ -154,10 +154,13 @@ stock-prediction/
    - **Build Command**: `pip install -r requirements.txt`
    - **Start Command**: `gunicorn app:app`
 
-3. **Environment Variables:**
+3. **Runtime:**
+   - `runtime.txt` is included with `python-3.11.16`, so Render will use Python 3.11.
+
+4. **Environment Variables:**
    - Add your NewsAPI key: `NEWS_API_KEY=your_actual_api_key_here`
 
-4. **Deploy:**
+5. **Deploy:**
    - Click "Create Web Service"
    - Render will automatically build and deploy your app
 
@@ -173,10 +176,16 @@ The app includes a `Procfile` for easy deployment to platforms like Heroku, Rend
 ## 🔧 Configuration
 
 ### NewsAPI Setup
-Replace the placeholder API key in `app.py` with your actual NewsAPI key:
-```python
-API_KEY = "your_actual_api_key_here"
-```
+Set your NewsAPI key with an environment variable instead of editing code directly.
+
+- Locally:
+  ```bash
+  set NEWS_API_KEY=your_actual_api_key_here
+  ```
+- On Render:
+  - Add `NEWS_API_KEY` in Environment Variables.
+
+The app now reads the key from `NEWS_API_KEY`.
 
 ### Model Parameters
 Modify `train_model.py` to adjust:
