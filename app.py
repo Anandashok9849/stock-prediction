@@ -26,7 +26,8 @@ app = Flask(__name__)
 # =========================
 # Load model + scaler
 # =========================
-model = load_model("model.keras", compile=False)
+model_path = "model.h5" if os.path.exists("model.h5") else "model.keras"
+model = load_model(model_path, compile=False)
 scaler = joblib.load("scaler.pkl")
 
 # Create static folder if not exists
@@ -255,4 +256,6 @@ def index():
 # Run Flask app
 # =========================
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    import os
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
